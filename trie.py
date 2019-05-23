@@ -1,5 +1,5 @@
 class Trie:
-    def __init__(self, char: str):
+    def __init__(self, char=''):
         self.isLeaf = False
         self.children = []
         self.char = char
@@ -22,6 +22,7 @@ def add(root: Trie, word: str):
     node.isLeaf = True
     return node
 
+
 def find_prefix_node(root: Trie, prefix: str):
     node = root
     if not root.children:
@@ -37,29 +38,21 @@ def find_prefix_node(root: Trie, prefix: str):
             return None
     return node
 
-def traverse_trie(root: Trie, num: int, prefix: str):
-    if num == 0:
+
+def traverse_trie(root: Trie, prefix: str):
+    if traverse_trie.num <= 0:
         return
     prefix += root.char
     if root.isLeaf:
-        num -= 1
+        traverse_trie.num -= 1
         yield prefix
     for node in root.children:
-        yield from traverse_trie(node, num, prefix)
+        yield from traverse_trie(node, prefix)
+
 
 def find_first_n_after_prefix(root: Trie, n: int, prefix: str):
     node = find_prefix_node(root, prefix)
     if node is not None:
-        yield from traverse_trie(node, n, prefix)
-
-
-if __name__ == "__main__":
-
-    root = Trie('')
-    add(root, "kek")
-    add(root, "kek212")
-    add(root, "kekasd")
-    add(root, "kek3")
-
-    for s in find_first_n_after_prefix(root, 10, "keka"):
-        print(s)
+        traverse_trie.num = n
+        prefix = prefix[:-1]
+        yield from traverse_trie(node, prefix)
