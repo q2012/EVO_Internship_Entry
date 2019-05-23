@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Posts{% endblock %}</h1>
   {% if g.user %}
-    <a class="action">New</a>
+      <form method="post" enctype="multipart/form-data" action="upload">
+      <label for="file">Choose File</label>
+      <input type="file" name="file" id="file" required>
+      <input type="submit" value="Upload">
+    </form>
   {% endif %}
-{% endblock %}
-
-{% block content %}
-  <h1>asda</h1>
 {% endblock %}

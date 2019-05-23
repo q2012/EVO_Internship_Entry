@@ -62,7 +62,7 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        db.mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        g.user = db.mongo.db.users.find_one({"_id": ObjectId(user_id)})
 
 
 @bp.route('/logout')
