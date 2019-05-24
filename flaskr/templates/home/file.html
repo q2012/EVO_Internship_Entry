@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1> {{ filename }} </h1>
+{% endblock %}
+
+{% block content %}
+    <a class="action" href="{{ url_for('home.download', filename=filename) }}">Download {{ filename }}</a><br>
+{% endblock %}

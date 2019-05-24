@@ -1,7 +1,8 @@
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for, make_response
 )
-import datetime
+from datetime import datetime
+from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
 from . import db
@@ -19,35 +20,73 @@ def get_grid_fs():
 
 @bp.route('/')
 def index():
-    u_files = None
+    end_files = []
     if g.user is not None:
         u_files = (db.mongo.db.users.find_one({"_id": ObjectId(g.user["_id"])}))["files"]
-    return render_template('home/index.html', files=u_files)
+        for file in u_files:
+            expires_at = datetime.strptime(file["filename"].split("__", 3)[2], '%Y-%m-%dT%H:%M')
+            datetime_now = datetime.utcnow()
+            print(file["filename"])
+            if expires_at <= datetime_now:
+                grid_fs = get_grid_fs()
+                grid_fs.delete({'filename': file["filename"]})
+                db.mongo.db.users.update_one({"_id": ObjectId(g.user["_id"])},
+                                             {"$pull": {"files": {"filename": file["filename"]}}})
+            else:
+                end_files.append(file)
+    print(end_files)
+    return render_template('home/index.html', files=end_files)
 
 
 @login_required
 @bp.route('/upload', methods=["POST"])
 def upload():
     grid_fs = get_grid_fs()
-    file_url = str(datetime.datetime.now())
-    with grid_fs.new_file(filename=file_url) as fp:
+    filename = str(g.user["_id"]) + "__" + str(datetime.utcnow()) + "__" + \
+               request.form["expires"] + "__" + request.files["file"].filename
+    with grid_fs.new_file(filename=filename) as fp:
         fp.write(request.files["file"])
         file_id = fp._id
 
     if grid_fs.find_one(file_id) is not None:
         print("Success")
-        db.mongo.db.users.update_one({"_id": ObjectId(g.user["_id"])}, {"$push": {"files": {"fileurl": file_url, "file_id": file_id} }})
+        db.mongo.db.users.update_one({"_id": ObjectId(g.user["_id"])},
+                                     {"$push": {"files": {"filename": filename, "file_id": file_id}}})
         return redirect(url_for("index"))
     else:
         print("Fail")
         return render_template('home/upload_failed')
+
 
 @bp.route('/download/<string:filename>')
 def download(filename):
     grid_fs = get_grid_fs()
     grid_fs_file = grid_fs.find_one({'filename': filename})
 
-    response = make_response(grid_fs_file.read())
-    response.headers['Content-Type'] = 'application/octet-stream'
-    response.headers["Content-Disposition"] = "attachment; filename={}".format(filename)
-    return response
+    if grid_fs_file is not None:
+        expires_at = datetime.strptime(filename.split("__", 3)[2], '%Y-%m-%dT%H:%M')
+        datetime_now = datetime.utcnow()
+        if expires_at >= datetime_now:
+            response = make_response(grid_fs_file.read())
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers["Content-Disposition"] = "attachment; filename={}".format(filename)
+            return response
+        grid_fs.delete({'filename': filename})
+        db.mongo.db.users.update_one({"_id": ObjectId(filename.split("__", 1)[0])},
+                                     {"$pull": {"files": {"filename": filename}}})
+    abort(404, "File with name {0} doesn't exist.".format(filename))
+
+
+@bp.route('/<string:filename>')
+def file_page(filename):
+    grid_fs = get_grid_fs()
+    if grid_fs.find_one({'filename': filename}) is not None:
+        expires_at = datetime.strptime(filename.split("__", 3)[2], '%Y-%m-%dT%H:%M')
+        datetime_now = datetime.utcnow()
+        if expires_at >= datetime_now:
+            return render_template('home/file.html', filename=filename)
+        grid_fs.delete({'filename': filename})
+        db.mongo.db.users.update_one({"_id": ObjectId(filename.split("__", 1)[0])},
+                                     {"$pull": {"files": {"filename": filename}}})
+    abort(404, "File with name {0} doesn't exist.".format(filename))
+

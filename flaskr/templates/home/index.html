@@ -2,7 +2,9 @@
 
 {% block header %}
   {% if g.user %}
-      <form method="post" enctype="multipart/form-data" action="upload">
+    <form method="post" enctype="multipart/form-data" action="upload">
+      <label for="expires">Expires at (UTC):</label>
+      <input type="datetime-local" id="expires" name="expires" required>
       <label for="file">Choose File</label>
       <input type="file" name="file" id="file" required>
       <input type="submit" value="Upload">
@@ -11,7 +13,9 @@
 {% endblock %}
 
 {% block content %}
-  {% for file in files %}
-    <a class="action" href="{{ url_for('home.download', filename=file['fileurl']) }}">Download {{ file['fileurl'] }}</a><br>
-  {% endfor %}
+  {% if g.user %}
+    {% for file in files %}
+      <a class="action" href="{{ url_for('home.file_page', filename=file['filename']) }}">{{ file['filename'] }}</a><br>
+    {% endfor %}
+  {% endif %}
 {% endblock %}
