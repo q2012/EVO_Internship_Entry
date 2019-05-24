@@ -1,5 +1,5 @@
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for, make_response
+    Blueprint, g, render_template, request, make_response, jsonify
 )
 from datetime import datetime
 from werkzeug.exceptions import abort
@@ -26,7 +26,6 @@ def index():
         for file in u_files:
             expires_at = datetime.strptime(file["filename"].split("__", 3)[2], '%Y-%m-%dT%H:%M')
             datetime_now = datetime.utcnow()
-            print(file["filename"])
             if expires_at <= datetime_now:
                 grid_fs = get_grid_fs()
                 grid_fs.delete({'filename': file["filename"]})
@@ -34,7 +33,6 @@ def index():
                                              {"$pull": {"files": {"filename": file["filename"]}}})
             else:
                 end_files.append(file)
-    print(end_files)
     return render_template('home/index.html', files=end_files)
 
 
@@ -42,20 +40,22 @@ def index():
 @bp.route('/upload', methods=["POST"])
 def upload():
     grid_fs = get_grid_fs()
+    expires_at = datetime.strptime(request.form["expires"], '%Y-%m-%dT%H:%M')
+    if expires_at <= datetime.utcnow():
+        return jsonify(error="Invalid expire date")
     filename = str(g.user["_id"]) + "__" + str(datetime.utcnow()) + "__" + \
                request.form["expires"] + "__" + request.files["file"].filename
+
     with grid_fs.new_file(filename=filename) as fp:
         fp.write(request.files["file"])
         file_id = fp._id
 
     if grid_fs.find_one(file_id) is not None:
-        print("Success")
         db.mongo.db.users.update_one({"_id": ObjectId(g.user["_id"])},
                                      {"$push": {"files": {"filename": filename, "file_id": file_id}}})
-        return redirect(url_for("index"))
+        return jsonify(fileurl=filename, filename=filename.split("__", 3)[3])
     else:
-        print("Fail")
-        return render_template('home/upload_failed')
+        return jsonify(error="Upload failed for absolutely no reason")
 
 
 @bp.route('/download/<string:filename>')
