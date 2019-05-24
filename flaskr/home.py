@@ -69,7 +69,7 @@ def download(filename):
         if expires_at >= datetime_now:
             response = make_response(grid_fs_file.read())
             response.headers['Content-Type'] = 'application/octet-stream'
-            response.headers["Content-Disposition"] = "attachment; filename={}".format(filename)
+            response.headers["Content-Disposition"] = "attachment; filename={}".format(filename.split("__", 3)[3])
             return response
         grid_fs.delete({'filename': filename})
         db.mongo.db.users.update_one({"_id": ObjectId(filename.split("__", 1)[0])},
