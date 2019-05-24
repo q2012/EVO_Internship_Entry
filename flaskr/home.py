@@ -84,7 +84,7 @@ def file_page(filename):
         expires_at = datetime.strptime(filename.split("__", 3)[2], '%Y-%m-%dT%H:%M')
         datetime_now = datetime.utcnow()
         if expires_at >= datetime_now:
-            return render_template('home/file.html', filename=filename)
+            return render_template('home/file.html', filename=filename.split("__", 3)[3], fileurl=filename)
         grid_fs.delete({'filename': filename})
         db.mongo.db.users.update_one({"_id": ObjectId(filename.split("__", 1)[0])},
                                      {"$pull": {"files": {"filename": filename}}})
