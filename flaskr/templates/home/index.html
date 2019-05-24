@@ -9,3 +9,9 @@
     </form>
   {% endif %}
 {% endblock %}
+
+{% block content %}
+  {% for file in files %}
+    <a class="action" href="{{ url_for('home.download', filename=file['fileurl']) }}">Download {{ file['fileurl'] }}</a><br>
+  {% endfor %}
+{% endblock %}

@@ -25,7 +25,7 @@ def register():
             error = 'User {} is already registered.'.format(username)
 
         if error is None:
-            db.mongo.db.users.insert_one({"login": str(username), "password": generate_password_hash(password)})
+            db.mongo.db.users.insert_one({"login": str(username), "password": generate_password_hash(password), "files": []})
             return redirect(url_for('auth.login'))
 
         flash(error)
