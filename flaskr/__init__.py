@@ -11,7 +11,7 @@ def create_app(test_config=None):
 
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY') or 'dev_key',
-        MONGO_URI=os.environ.get('DATABASE_URL') or "mongodb://localhost:27017/first_task"
+        MONGO_URI=os.environ.get('MONGODB_URI') or "mongodb://localhost:27017/first_task"
     )
 
     # ensure the instance folder exists
